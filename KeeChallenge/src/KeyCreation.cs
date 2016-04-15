@@ -31,11 +31,7 @@ namespace KeeChallenge
 {
     public partial class KeyCreation : Form
     {
-        public byte[] Secret
-        {
-            get;
-            private set;
-        }
+        public byte[] Secret { get; private set; }
 
         private KeeChallengeProv m_parent;
 
@@ -46,7 +42,7 @@ namespace KeeChallenge
             Icon = Icon.FromHandle(Properties.Resources.yubikey.GetHicon());
             m_parent = parent;
         }
-  
+
         public void OnClosing(object o, FormClosingEventArgs e)
         {
             if (DialogResult == DialogResult.OK)
@@ -55,13 +51,13 @@ namespace KeeChallenge
 
                 Secret = new byte[KeeChallengeProv.secretLenBytes];
                 secretTextBox.Text = secretTextBox.Text.Replace(" ", string.Empty); //remove spaces
-                
+
                 if (secretTextBox.Text.Length == KeeChallengeProv.secretLenBytes * 2)
                 {
                     for (int i = 0; i < secretTextBox.Text.Length; i += 2)
                     {
                         string b = secretTextBox.Text.Substring(i, 2);
-                        Secret[i / 2] = Convert.ToByte(b,16);
+                        Secret[i / 2] = Convert.ToByte(b, 16);
                     }
                 }
                 else
@@ -71,12 +67,12 @@ namespace KeeChallenge
                     e.Cancel = true;
                     return;
                 }
-                
+
                 //Confirm they have a key whose secret matches this
-                byte[] challenge = m_parent.GenerateChallenge();                
-                KeyEntry validate = new KeyEntry(m_parent, challenge);               
-                
-                if ( validate.ShowDialog(this) != DialogResult.OK)
+                byte[] challenge = m_parent.GenerateChallenge();
+                KeyEntry validate = new KeyEntry(m_parent, challenge);
+
+                if (validate.ShowDialog(this) != DialogResult.OK)
                 {
                     MessageBox.Show("Unable to get response from yubikey");
                     e.Cancel = true;
@@ -85,21 +81,21 @@ namespace KeeChallenge
                 }
 
                 byte[] validResp = m_parent.GenerateResponse(challenge, Secret);
-                
+
                 for (int i = 0; i < validate.Response.Length; i++)
                 {
                     if (validate.Response[i] != validResp[i])
                     {
                         MessageBox.Show("Error: secret does not match yubikey");
                         e.Cancel = true;
-                        Array.Clear(Secret,0,Secret.Length);
+                        Array.Clear(Secret, 0, Secret.Length);
                         return; //Error: wrong secret
-                    }                   
+                    }
                 }
-                
+
                 Array.Clear(validate.Response, 0, validate.Response.Length);
             }
             GlobalWindowManager.RemoveWindow(this);
-        }      
+        }
     }
 }

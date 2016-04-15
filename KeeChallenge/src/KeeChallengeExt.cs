@@ -48,16 +48,20 @@ namespace KeeChallenge
 
         public override bool Initialize(IPluginHost host)
         {
-            if (m_host != null) { Terminate(); }
+            if (m_host != null)
+            {
+                Terminate();
+            }
 
             if (host == null) return false;
 
             m_host = host;
-            
-            int slot = Properties.Settings.Default.YubikeySlot - 1;  //Important: for readability, the slot settings are not zero based. We must account for this during read/save
+
+            int slot = Properties.Settings.Default.YubikeySlot - 1;
+                //Important: for readability, the slot settings are not zero based. We must account for this during read/save
             YubiSlot yubiSlot = YubiSlot.SLOT2;
-            if (Enum.IsDefined(typeof(YubiSlot),slot))
-                yubiSlot = (YubiSlot)slot;
+            if (Enum.IsDefined(typeof(YubiSlot), slot))
+                yubiSlot = (YubiSlot) slot;
 
             ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
             m_Separator = new ToolStripSeparator();
@@ -68,19 +72,27 @@ namespace KeeChallenge
             m_YubiSlot1.Text = "Slot 1";
             m_YubiSlot1.CheckOnClick = true;
             m_YubiSlot1.Checked = yubiSlot == YubiSlot.SLOT1;
-            m_YubiSlot1.Click += (s, e) => { m_YubiSlot2.Checked = false; m_prov.YubikeySlot = YubiSlot.SLOT1; };
-            
+            m_YubiSlot1.Click += (s, e) =>
+            {
+                m_YubiSlot2.Checked = false;
+                m_prov.YubikeySlot = YubiSlot.SLOT1;
+            };
+
             m_YubiSlot2 = new ToolStripMenuItem();
             m_YubiSlot2.Name = "Slot2";
             m_YubiSlot2.Text = "Slot 2";
             m_YubiSlot2.CheckOnClick = true;
             m_YubiSlot2.Checked = yubiSlot == YubiSlot.SLOT2;
-            m_YubiSlot2.Click += (s, e) => { m_YubiSlot1.Checked = false; m_prov.YubikeySlot = YubiSlot.SLOT2; };
+            m_YubiSlot2.Click += (s, e) =>
+            {
+                m_YubiSlot1.Checked = false;
+                m_prov.YubikeySlot = YubiSlot.SLOT2;
+            };
 
             m_MenuItem = new ToolStripMenuItem();
             m_MenuItem.Text = "KeeChallenge Settings";
-            m_MenuItem.DropDownItems.AddRange(new ToolStripItem[] { m_YubiSlot1, m_YubiSlot2 });
-            
+            m_MenuItem.DropDownItems.AddRange(new ToolStripItem[] {m_YubiSlot1, m_YubiSlot2});
+
             tsMenu.Add(m_MenuItem);
 
             m_prov = new KeeChallengeProv();
@@ -91,7 +103,7 @@ namespace KeeChallenge
         }
 
         public override void Terminate()
-        {           
+        {
             if (m_host != null)
             {
                 m_host.KeyProviderPool.Remove(m_prov);
@@ -99,7 +111,7 @@ namespace KeeChallenge
                     Properties.Settings.Default.YubikeySlot = 1;
                 else if (m_YubiSlot2.Checked)
                     Properties.Settings.Default.YubikeySlot = 2;
-                
+
                 Properties.Settings.Default.Save();
 
                 ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
@@ -109,7 +121,6 @@ namespace KeeChallenge
                 m_prov = null;
                 m_host = null;
             }
-        }       
-     
+        }
     }
 }

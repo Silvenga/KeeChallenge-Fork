@@ -38,7 +38,7 @@ namespace KeeChallenge
         private YubiWrapper yubi;
         private YubiSlot yubiSlot;
         private KeeChallengeProv m_parent;
-        
+
         private bool success;
 
         private BackgroundWorker keyWorker;
@@ -55,11 +55,7 @@ namespace KeeChallenge
             set { m_challenge = value; }
         }
 
-        public bool RecoveryMode
-        {
-            get;
-            private set;
-        }
+        public bool RecoveryMode { get; private set; }
 
         public KeyEntry(KeeChallengeProv parent)
         {
@@ -84,14 +80,14 @@ namespace KeeChallenge
 
             Icon = Icon.FromHandle(Properties.Resources.yubikey.GetHicon());
         }
-               
+
         private void YubiChallengeResponse(object sender, DoWorkEventArgs e) //Should terminate in 15seconds worst case
         {
             //Send the challenge to yubikey and get response
             if (Challenge == null) return;
             success = yubi.ChallengeResponse(yubiSlot, Challenge, out m_response);
             if (!success)
-                MessageBox.Show("Error getting response from yubikey", "Error");           
+                MessageBox.Show("Error getting response from yubikey", "Error");
 
             return;
         }
@@ -99,8 +95,9 @@ namespace KeeChallenge
         private void keyWorkerDone(object sender, EventArgs e) //guaranteed to run after YubiChallengeResponse
         {
             if (success)
-                DialogResult = System.Windows.Forms.DialogResult.OK;  //setting this calls Close() IF the form is shown using ShowDialog()
-            else DialogResult = System.Windows.Forms.DialogResult.No; 
+                DialogResult = System.Windows.Forms.DialogResult.OK;
+                    //setting this calls Close() IF the form is shown using ShowDialog()
+            else DialogResult = System.Windows.Forms.DialogResult.No;
         }
 
         private void Countdown(object sender, EventArgs e)
@@ -114,7 +111,7 @@ namespace KeeChallenge
                 this.Close();
             }
         }
-        
+
         private void OnFormLoad(object sender, EventArgs e)
         {
             ControlBox = false;
@@ -129,7 +126,7 @@ namespace KeeChallenge
                 while (!yubi.Init())
                 {
                     YubiPrompt prompt = new YubiPrompt();
-                    DialogResult res =  prompt.ShowDialog();
+                    DialogResult res = prompt.ShowDialog();
                     if (res != System.Windows.Forms.DialogResult.Retry)
                     {
                         RecoveryMode = prompt.RecoveryMode;
@@ -150,10 +147,10 @@ namespace KeeChallenge
             countdown.Interval = 1000;
             countdown.Enabled = true;
 
-            keyWorker = new BackgroundWorker();            
+            keyWorker = new BackgroundWorker();
             keyWorker.DoWork += YubiChallengeResponse;
             keyWorker.RunWorkerCompleted += keyWorkerDone;
-            keyWorker.RunWorkerAsync();     
+            keyWorker.RunWorkerAsync();
         }
 
         private void OnFormClosed(object sender, FormClosedEventArgs e)

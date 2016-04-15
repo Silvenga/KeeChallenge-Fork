@@ -31,12 +31,7 @@ namespace KeeChallenge
 {
     public partial class RecoveryMode : Form
     {
-
-        public byte[] Secret
-        {
-            get;
-            private set;
-        }
+        public byte[] Secret { get; private set; }
 
         public RecoveryMode()
         {
@@ -51,13 +46,13 @@ namespace KeeChallenge
             {
                 Secret = new byte[KeeChallengeProv.secretLenBytes];
                 secretTextBox.Text = secretTextBox.Text.Replace(" ", string.Empty); //remove spaces
-               
+
                 if (secretTextBox.Text.Length == KeeChallengeProv.secretLenBytes * 2)
                 {
                     for (int i = 0; i < secretTextBox.Text.Length; i += 2)
                     {
                         string b = secretTextBox.Text.Substring(i, 2);
-                        Secret[i / 2] = Convert.ToByte(b,16);
+                        Secret[i / 2] = Convert.ToByte(b, 16);
                     }
                 }
                 else
@@ -66,9 +61,9 @@ namespace KeeChallenge
                     MessageBox.Show("Error: secret must be 20 bytes long");
                     e.Cancel = true;
                     return;
-                }        
+                }
             }
             GlobalWindowManager.RemoveWindow(this);
-        }      
+        }
     }
 }

@@ -29,7 +29,9 @@ using System.Linq;
 using KeePassLib.Keys;
 using KeePassLib.Utility;
 using KeePassLib.Cryptography;
+
 using KeePass.UI;
+
 using KeePassLib.Serialization;
 
 namespace KeeChallenge
@@ -50,11 +52,7 @@ namespace KeeChallenge
             set { m_LT64 = value; }
         }
 
-        public YubiSlot YubikeySlot
-        {
-            get;
-            set;
-        }
+        public YubiSlot YubikeySlot { get; set; }
 
         public KeeChallengeProv()
         {
@@ -70,10 +68,7 @@ namespace KeeChallenge
 
         public override bool SecureDesktopCompatible
         {
-            get
-            {
-                return true;
-            }
+            get { return true; }
         }
 
         public override byte[] GetKey(KeyProviderQueryContext ctx)
@@ -89,19 +84,22 @@ namespace KeeChallenge
             Regex rgx = new Regex(@"\.kdbx$");
             mInfo.Path = rgx.Replace(db, ".xml");
 
-            if (Object.ReferenceEquals(db,mInfo.Path)) //no terminating .kdbx found-> maybe using keepass 1? should never happen...
+            if (Object.ReferenceEquals(db, mInfo.Path))
+                //no terminating .kdbx found-> maybe using keepass 1? should never happen...
             {
                 MessageService.ShowWarning("Invalid database. KeeChallenge only works with .kdbx files.");
                 return null;
             }
-
 
             try
             {
                 if (ctx.CreatingNewKey) return Create(ctx);
                 return Get(ctx);
             }
-            catch (Exception ex) { MessageService.ShowWarning(ex.Message); }
+            catch (Exception ex)
+            {
+                MessageService.ShowWarning(ex.Message);
+            }
 
             return null;
         }
@@ -109,10 +107,10 @@ namespace KeeChallenge
         public byte[] GenerateChallenge()
         {
             CryptoRandom rand = CryptoRandom.Instance;
-            byte[] chal =  CryptoRandom.Instance.GetRandomBytes(challengeLenBytes);  
+            byte[] chal = CryptoRandom.Instance.GetRandomBytes(challengeLenBytes);
             if (LT64)
             {
-                chal[challengeLenBytes - 2] = (byte)~chal[challengeLenBytes - 1];
+                chal[challengeLenBytes - 2] = (byte) ~chal[challengeLenBytes - 1];
             }
 
             return chal;
@@ -175,7 +173,7 @@ namespace KeeChallenge
                 FileTransactionEx ft = new FileTransactionEx(mInfo,
                     false);
                 s = ft.OpenWrite();
-               
+
                 XmlWriterSettings settings = new XmlWriterSettings();
                 settings.CloseOutput = true;
                 settings.Indent = true;
@@ -197,24 +195,25 @@ namespace KeeChallenge
 
                 xml.WriteEndElement();
                 xml.WriteEndDocument();
-                xml.Close();                
-  
-                ft.CommitWrite();  
+                xml.Close();
+
+                ft.CommitWrite();
             }
             catch (Exception)
             {
                 MessageService.ShowWarning(String.Format("Error: unable to write to file {0}", mInfo.Path));
                 return false;
-            }    
+            }
             finally
-            {                
+            {
                 s.Close();
             }
 
             return true;
         }
 
-        private static bool DecryptSecret(byte[] encryptedSecret, byte[] yubiResp, byte[] iv, byte[] verification, out byte[] secret)
+        private static bool DecryptSecret(byte[] encryptedSecret, byte[] yubiResp, byte[] iv, byte[] verification,
+                                          out byte[] secret)
         {
             //use the response to decrypt the secret
             SHA256 sha = SHA256Managed.Create();
@@ -255,14 +254,15 @@ namespace KeeChallenge
             aes.Clear();
             return true;
         }
-       
-        private bool ReadEncryptedSecret(out byte[] encryptedSecret, out byte[] challenge, out byte[] iv, out byte[] verification)
+
+        private bool ReadEncryptedSecret(out byte[] encryptedSecret, out byte[] challenge, out byte[] iv,
+                                         out byte[] verification)
         {
             encryptedSecret = null;
             iv = null;
             challenge = null;
             verification = null;
-            
+
             LT64 = false; //default to false if not found
 
             XmlReader xml = null;
@@ -276,7 +276,7 @@ namespace KeeChallenge
                 XmlReaderSettings settings = new XmlReaderSettings();
                 settings.CloseInput = true;
                 xml = XmlReader.Create(s, settings);
-                
+
                 while (xml.Read())
                 {
                     if (xml.IsStartElement())
@@ -301,16 +301,19 @@ namespace KeeChallenge
                                 break;
                             case "lt64":
                                 xml.Read();
-                                if (!bool.TryParse(xml.Value.Trim(), out m_LT64)) throw new Exception("Unable to parse LT64 flag");
+                                if (!bool.TryParse(xml.Value.Trim(), out m_LT64))
+                                    throw new Exception("Unable to parse LT64 flag");
                                 break;
-
                         }
                     }
                 }
             }
             catch (Exception)
             {
-                MessageService.ShowWarning(String.Format("Error: file {0} could not be read correctly. Is the file corrupt? Reverting to recovery mode", mInfo.Path));
+                MessageService.ShowWarning(
+                    String.Format(
+                        "Error: file {0} could not be read correctly. Is the file corrupt? Reverting to recovery mode",
+                        mInfo.Path));
                 return false;
             }
             finally
@@ -334,8 +337,9 @@ namespace KeeChallenge
             if (creator.ShowDialog() != System.Windows.Forms.DialogResult.OK) return null;
 
             byte[] secret = new byte[creator.Secret.Length];
-            
-            Array.Copy(creator.Secret, secret, creator.Secret.Length); //probably paranoid here, but not a big performance hit
+
+            Array.Copy(creator.Secret, secret, creator.Secret.Length);
+                //probably paranoid here, but not a big performance hit
             Array.Clear(creator.Secret, 0, creator.Secret.Length);
 
             if (!EncryptAndSave(secret))
@@ -344,7 +348,7 @@ namespace KeeChallenge
             }
 
             //store the encrypted secret, the iv, and the challenge to disk           
-           
+
             return secret;
         }
 
@@ -363,10 +367,10 @@ namespace KeeChallenge
                 EncryptAndSave(secret);
                 return secret;
             }
-                //show the dialog box prompting user to press yubikey button
+            //show the dialog box prompting user to press yubikey button
             byte[] resp = new byte[YubiWrapper.yubiRespLen];
             KeyEntry entryForm = new KeyEntry(this, challenge);
-            
+
             if (entryForm.ShowDialog() != System.Windows.Forms.DialogResult.OK)
             {
                 if (entryForm.RecoveryMode)
@@ -376,11 +380,11 @@ namespace KeeChallenge
                     return secret;
                 }
 
-                else return null;                
-            }               
+                else return null;
+            }
 
-            entryForm.Response.CopyTo(resp,0);
-            Array.Clear(entryForm.Response,0,entryForm.Response.Length);
+            entryForm.Response.CopyTo(resp, 0);
+            Array.Clear(entryForm.Response, 0, entryForm.Response.Length);
 
             if (DecryptSecret(encryptedSecret, resp, iv, verification, out secret))
             {
@@ -402,10 +406,9 @@ namespace KeeChallenge
             byte[] secret = new byte[recovery.Secret.Length];
 
             recovery.Secret.CopyTo(secret, 0);
-            Array.Clear(recovery.Secret, 0, recovery.Secret.Length);            
-             
-            return secret;
-       }
+            Array.Clear(recovery.Secret, 0, recovery.Secret.Length);
 
+            return secret;
+        }
     }
 }
