@@ -39,7 +39,7 @@ namespace KeeChallenge.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("KeeChallenge.Properties.Resources", typeof(Resources).Assembly);
+                    var temp = new global::System.Resources.ResourceManager("KeeChallenge.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -65,7 +65,7 @@ namespace KeeChallenge.Properties {
         /// </summary>
         internal static System.Drawing.Bitmap yubikey {
             get {
-                object obj = ResourceManager.GetObject("yubikey", resourceCulture);
+                var obj = ResourceManager.GetObject("yubikey", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

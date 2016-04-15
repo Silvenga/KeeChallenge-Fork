@@ -95,7 +95,7 @@
       <DependentUpon>KeyCreation.cs</DependentUpon>
     </Compile>
     <Compile Include="KeeChallenge.cs" />
-    <Compile Include="KeeChallengeExt.cs" />
+    <Compile Include="KeeChallengePlugin.cs" />
     <Compile Include="KeyEntry.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -120,6 +120,7 @@
     <Compile Include="YubiPrompt.Designer.cs">
       <DependentUpon>YubiPrompt.cs</DependentUpon>
     </Compile>
+    <Compile Include="YubiSlot.cs" />
     <Compile Include="YubiWrapper.cs" />
     <EmbeddedResource Include="KeyCreation.resx">
       <DependentUpon>KeyCreation.cs</DependentUpon>

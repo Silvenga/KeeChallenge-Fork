@@ -17,12 +17,7 @@
 */
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 using KeePass.UI;
@@ -33,30 +28,30 @@ namespace KeeChallenge
     {
         public byte[] Secret { get; private set; }
 
-        private KeeChallengeProv m_parent;
+        private readonly KeeChallengeKeyProvider _mParent;
 
-        public KeyCreation(KeeChallengeProv parent)
+        public KeyCreation(KeeChallengeKeyProvider parent)
         {
             InitializeComponent();
             Secret = null;
             Icon = Icon.FromHandle(Properties.Resources.yubikey.GetHicon());
-            m_parent = parent;
+            _mParent = parent;
         }
 
-        public void OnClosing(object o, FormClosingEventArgs e)
+        private void OnClosing(object o, FormClosingEventArgs e)
         {
             if (DialogResult == DialogResult.OK)
             {
-                m_parent.LT64 = LT64_cb.Checked;
+                _mParent.Lt64 = LT64_cb.Checked;
 
-                Secret = new byte[KeeChallengeProv.secretLenBytes];
+                Secret = new byte[KeeChallengeKeyProvider.SecretLenBytes];
                 secretTextBox.Text = secretTextBox.Text.Replace(" ", string.Empty); //remove spaces
 
-                if (secretTextBox.Text.Length == KeeChallengeProv.secretLenBytes * 2)
+                if (secretTextBox.Text.Length == KeeChallengeKeyProvider.SecretLenBytes * 2)
                 {
-                    for (int i = 0; i < secretTextBox.Text.Length; i += 2)
+                    for (var i = 0; i < secretTextBox.Text.Length; i += 2)
                     {
-                        string b = secretTextBox.Text.Substring(i, 2);
+                        var b = secretTextBox.Text.Substring(i, 2);
                         Secret[i / 2] = Convert.ToByte(b, 16);
                     }
                 }
@@ -69,8 +64,8 @@ namespace KeeChallenge
                 }
 
                 //Confirm they have a key whose secret matches this
-                byte[] challenge = m_parent.GenerateChallenge();
-                KeyEntry validate = new KeyEntry(m_parent, challenge);
+                var challenge = _mParent.GenerateChallenge();
+                var validate = new KeyEntry(_mParent, challenge);
 
                 if (validate.ShowDialog(this) != DialogResult.OK)
                 {
@@ -80,9 +75,9 @@ namespace KeeChallenge
                     return;
                 }
 
-                byte[] validResp = m_parent.GenerateResponse(challenge, Secret);
+                var validResp = _mParent.GenerateResponse(challenge, Secret);
 
-                for (int i = 0; i < validate.Response.Length; i++)
+                for (var i = 0; i < validate.Response.Length; i++)
                 {
                     if (validate.Response[i] != validResp[i])
                     {

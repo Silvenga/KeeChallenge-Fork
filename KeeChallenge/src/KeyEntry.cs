@@ -17,12 +17,8 @@
 */
 
 using System;
-using System.Threading;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 using System.Diagnostics;
 
@@ -32,51 +28,46 @@ namespace KeeChallenge
 {
     public partial class KeyEntry : Form
     {
-        private System.Windows.Forms.Timer countdown;
-        private byte[] m_challenge;
-        private byte[] m_response;
-        private YubiWrapper yubi;
-        private YubiSlot yubiSlot;
-        private KeeChallengeProv m_parent;
+        private Timer _countdown;
+        private byte[] _response;
+        private YubiWrapper _yubi;
+        private readonly YubiSlot _yubiSlot;
+        private KeeChallengeKeyProvider _parent;
 
-        private bool success;
+        private bool _success;
 
-        private BackgroundWorker keyWorker;
+        private BackgroundWorker _keyWorker;
 
         public byte[] Response
         {
-            get { return m_response; }
-            private set { m_response = value; }
+            get { return _response; }
+            private set { _response = value; }
         }
 
-        public byte[] Challenge
-        {
-            get { return m_challenge; }
-            set { m_challenge = value; }
-        }
+        public byte[] Challenge { get; set; }
 
         public bool RecoveryMode { get; private set; }
 
-        public KeyEntry(KeeChallengeProv parent)
+        public KeyEntry(KeeChallengeKeyProvider parent)
         {
             InitializeComponent();
-            m_parent = parent;
-            success = false;
-            Response = new byte[YubiWrapper.yubiRespLen];
+            _parent = parent;
+            _success = false;
+            Response = new byte[YubiWrapper.YubiRespLen];
             Challenge = null;
-            yubiSlot = parent.YubikeySlot;
+            _yubiSlot = parent.YubikeySlot;
             RecoveryMode = false;
             Icon = Icon.FromHandle(Properties.Resources.yubikey.GetHicon());
         }
 
-        public KeyEntry(KeeChallengeProv parent, byte[] challenge)
+        public KeyEntry(KeeChallengeKeyProvider parent, byte[] challenge)
         {
             InitializeComponent();
-            m_parent = parent;
-            success = false;
-            Response = new byte[YubiWrapper.yubiRespLen];
+            _parent = parent;
+            _success = false;
+            Response = new byte[YubiWrapper.YubiRespLen];
             Challenge = challenge;
-            yubiSlot = parent.YubikeySlot;
+            _yubiSlot = parent.YubikeySlot;
 
             Icon = Icon.FromHandle(Properties.Resources.yubikey.GetHicon());
         }
@@ -84,31 +75,44 @@ namespace KeeChallenge
         private void YubiChallengeResponse(object sender, DoWorkEventArgs e) //Should terminate in 15seconds worst case
         {
             //Send the challenge to yubikey and get response
-            if (Challenge == null) return;
-            success = yubi.ChallengeResponse(yubiSlot, Challenge, out m_response);
-            if (!success)
+            if (Challenge == null)
+            {
+                return;
+            }
+            _success = _yubi.ChallengeResponse(_yubiSlot, Challenge, out _response);
+            if (!_success)
+            {
                 MessageBox.Show("Error getting response from yubikey", "Error");
-
-            return;
+            }
         }
 
-        private void keyWorkerDone(object sender, EventArgs e) //guaranteed to run after YubiChallengeResponse
+        private void KeyWorkerDone(object sender, EventArgs e) //guaranteed to run after YubiChallengeResponse
         {
-            if (success)
-                DialogResult = System.Windows.Forms.DialogResult.OK;
-                    //setting this calls Close() IF the form is shown using ShowDialog()
-            else DialogResult = System.Windows.Forms.DialogResult.No;
+            if (_success)
+            {
+                DialogResult = DialogResult.OK;
+            }
+            //setting this calls Close() IF the form is shown using ShowDialog()
+            else
+            {
+                DialogResult = DialogResult.No;
+            }
         }
 
         private void Countdown(object sender, EventArgs e)
         {
-            if (countdown == null) return;
+            if (_countdown == null)
+            {
+                return;
+            }
             if (progressBar.Value > 0)
+            {
                 progressBar.Value--;
+            }
             else
             {
-                countdown.Stop();
-                this.Close();
+                _countdown.Stop();
+                Close();
             }
         }
 
@@ -120,17 +124,17 @@ namespace KeeChallenge
             progressBar.Minimum = 0;
             progressBar.Value = 15;
 
-            yubi = new YubiWrapper();
+            _yubi = new YubiWrapper();
             try
             {
-                while (!yubi.Init())
+                while (!_yubi.Init())
                 {
-                    YubiPrompt prompt = new YubiPrompt();
-                    DialogResult res = prompt.ShowDialog();
-                    if (res != System.Windows.Forms.DialogResult.Retry)
+                    var prompt = new YubiPrompt();
+                    var res = prompt.ShowDialog();
+                    if (res != DialogResult.Retry)
                     {
                         RecoveryMode = prompt.RecoveryMode;
-                        DialogResult = System.Windows.Forms.DialogResult.Abort;
+                        DialogResult = DialogResult.Abort;
                         return;
                     }
                 }
@@ -142,28 +146,25 @@ namespace KeeChallenge
                 return;
             }
             //spawn background countdown timer
-            countdown = new System.Windows.Forms.Timer();
-            countdown.Tick += Countdown;
-            countdown.Interval = 1000;
-            countdown.Enabled = true;
+            _countdown = new Timer();
+            _countdown.Tick += Countdown;
+            _countdown.Interval = 1000;
+            _countdown.Enabled = true;
 
-            keyWorker = new BackgroundWorker();
-            keyWorker.DoWork += YubiChallengeResponse;
-            keyWorker.RunWorkerCompleted += keyWorkerDone;
-            keyWorker.RunWorkerAsync();
+            _keyWorker = new BackgroundWorker();
+            _keyWorker.DoWork += YubiChallengeResponse;
+            _keyWorker.RunWorkerCompleted += KeyWorkerDone;
+            _keyWorker.RunWorkerAsync();
         }
 
         private void OnFormClosed(object sender, FormClosedEventArgs e)
         {
-            if (countdown != null)
+            if (_countdown != null)
             {
-                countdown.Enabled = false;
-                countdown.Dispose();
+                _countdown.Enabled = false;
+                _countdown.Dispose();
             }
-            if (yubi != null)
-            {
-                yubi.Close();
-            }
+            _yubi?.Close();
             GlobalWindowManager.RemoveWindow(this);
         }
     }

@@ -18,8 +18,6 @@
 
 using System;
 using System.IO;
-using System.Collections.Generic;
-using System.Text;
 using System.Security.Cryptography;
 using System.Diagnostics;
 using System.Xml;
@@ -29,47 +27,38 @@ using System.Linq;
 using KeePassLib.Keys;
 using KeePassLib.Utility;
 using KeePassLib.Cryptography;
-
-using KeePass.UI;
-
 using KeePassLib.Serialization;
 
 namespace KeeChallenge
 {
-    public sealed class KeeChallengeProv : KeyProvider
+    public sealed class KeeChallengeKeyProvider : KeyProvider
     {
-        public const string m_name = "Yubikey challenge-response";
-        public const int keyLenBytes = 20;
-        public const int challengeLenBytes = 64;
-        public const int secretLenBytes = 20;
-        private bool m_LT64 = false;
+        public const int KeyLenBytes = 20;
+        public const int ChallengeLenBytes = 64;
+        public const int SecretLenBytes = 20;
+
+        private bool _lt64;
 
         //If variable length challenges are enabled, a 63 byte challenge is sent instead.
         //See GenerateChallenge() and http://forum.yubico.com/viewtopic.php?f=16&t=1078
-        public bool LT64
+        public bool Lt64
         {
-            get { return m_LT64; }
-            set { m_LT64 = value; }
+            get { return _lt64; }
+            set { _lt64 = value; }
         }
 
         public YubiSlot YubikeySlot { get; set; }
 
-        public KeeChallengeProv()
+        public KeeChallengeKeyProvider()
         {
-            YubikeySlot = YubiSlot.SLOT2;
+            YubikeySlot = YubiSlot.Slot2;
         }
 
-        private IOConnectionInfo mInfo;
+        private IOConnectionInfo _info;
 
-        public override string Name
-        {
-            get { return m_name; }
-        }
+        public override string Name => "Yubikey challenge-response";
 
-        public override bool SecureDesktopCompatible
-        {
-            get { return true; }
-        }
+        public override bool SecureDesktopCompatible => true;
 
         public override byte[] GetKey(KeyProviderQueryContext ctx)
         {
@@ -79,12 +68,12 @@ namespace KeeChallenge
                 return null;
             }
 
-            mInfo = ctx.DatabaseIOInfo.CloneDeep();
-            string db = mInfo.Path;
-            Regex rgx = new Regex(@"\.kdbx$");
-            mInfo.Path = rgx.Replace(db, ".xml");
+            _info = ctx.DatabaseIOInfo.CloneDeep();
+            var db = _info.Path;
+            var rgx = new Regex(@"\.kdbx$");
+            _info.Path = rgx.Replace(db, ".xml");
 
-            if (Object.ReferenceEquals(db, mInfo.Path))
+            if (ReferenceEquals(db, _info.Path))
                 //no terminating .kdbx found-> maybe using keepass 1? should never happen...
             {
                 MessageService.ShowWarning("Invalid database. KeeChallenge only works with .kdbx files.");
@@ -93,8 +82,7 @@ namespace KeeChallenge
 
             try
             {
-                if (ctx.CreatingNewKey) return Create(ctx);
-                return Get(ctx);
+                return ctx.CreatingNewKey ? Create(ctx) : Get(ctx);
             }
             catch (Exception ex)
             {
@@ -106,11 +94,11 @@ namespace KeeChallenge
 
         public byte[] GenerateChallenge()
         {
-            CryptoRandom rand = CryptoRandom.Instance;
-            byte[] chal = CryptoRandom.Instance.GetRandomBytes(challengeLenBytes);
-            if (LT64)
+            var rand = CryptoRandom.Instance;
+            var chal = CryptoRandom.Instance.GetRandomBytes(ChallengeLenBytes);
+            if (Lt64)
             {
-                chal[challengeLenBytes - 2] = (byte) ~chal[challengeLenBytes - 1];
+                chal[ChallengeLenBytes - 2] = (byte) ~chal[ChallengeLenBytes - 1];
             }
 
             return chal;
@@ -118,12 +106,14 @@ namespace KeeChallenge
 
         public byte[] GenerateResponse(byte[] challenge, byte[] key)
         {
-            HMACSHA1 hmac = new HMACSHA1(key);
+            var hmac = new HMACSHA1(key);
 
-            if (LT64)
-                challenge = challenge.Take(challengeLenBytes - 1).ToArray();
+            if (Lt64)
+            {
+                challenge = challenge.Take(ChallengeLenBytes - 1).ToArray();
+            }
 
-            byte[] resp = hmac.ComputeHash(challenge);
+            var resp = hmac.ComputeHash(challenge);
             hmac.Clear();
             return resp;
         }
@@ -131,28 +121,31 @@ namespace KeeChallenge
         private bool EncryptAndSave(byte[] secret)
         {
             //generate a random challenge for use next time
-            byte[] challenge = GenerateChallenge();
+            var challenge = GenerateChallenge();
 
             //generate the expected HMAC-SHA1 response for the challenge based on the secret
-            byte[] resp = GenerateResponse(challenge, secret);
+            var resp = GenerateResponse(challenge, secret);
 
             //use the response to encrypt the secret
-            SHA256 sha = SHA256Managed.Create();
-            byte[] key = sha.ComputeHash(resp); // get a 256 bit key from the 160 bit hmac response
-            byte[] secretHash = sha.ComputeHash(secret);
+            var sha = SHA256.Create();
+            var key = sha.ComputeHash(resp); // get a 256 bit key from the 160 bit hmac response
+            var secretHash = sha.ComputeHash(secret);
 
-            AesManaged aes = new AesManaged();
-            aes.KeySize = key.Length * sizeof(byte) * 8; //pedantic, but foolproof
-            aes.Key = key;
+            var aes = new AesManaged
+            {
+                KeySize = key.Length * sizeof(byte) * 8, //pedantic, but foolproof
+                Key = key
+            };
+
             aes.GenerateIV();
             aes.Padding = PaddingMode.PKCS7;
-            byte[] iv = aes.IV;
+            var iv = aes.IV;
 
             byte[] encrypted;
-            ICryptoTransform enc = aes.CreateEncryptor();
-            using (MemoryStream msEncrypt = new MemoryStream())
+            var enc = aes.CreateEncryptor();
+            using (var msEncrypt = new MemoryStream())
             {
-                using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, enc, CryptoStreamMode.Write))
+                using (var csEncrypt = new CryptoStream(msEncrypt, enc, CryptoStreamMode.Write))
                 {
                     csEncrypt.Write(secret, 0, secret.Length);
                     csEncrypt.FlushFinalBlock();
@@ -170,17 +163,19 @@ namespace KeeChallenge
             Stream s = null;
             try
             {
-                FileTransactionEx ft = new FileTransactionEx(mInfo,
+                var ft = new FileTransactionEx(_info,
                     false);
                 s = ft.OpenWrite();
 
-                XmlWriterSettings settings = new XmlWriterSettings();
-                settings.CloseOutput = true;
-                settings.Indent = true;
-                settings.IndentChars = "\t";
-                settings.NewLineOnAttributes = true;
+                var settings = new XmlWriterSettings
+                {
+                    CloseOutput = true,
+                    Indent = true,
+                    IndentChars = "\t",
+                    NewLineOnAttributes = true
+                };
 
-                XmlWriter xml = XmlWriter.Create(s, settings);
+                var xml = XmlWriter.Create(s, settings);
                 xml.WriteStartDocument();
                 xml.WriteStartElement("data");
 
@@ -191,7 +186,7 @@ namespace KeeChallenge
 
                 xml.WriteElementString("challenge", Convert.ToBase64String(challenge));
                 xml.WriteElementString("verification", Convert.ToBase64String(secretHash));
-                xml.WriteElementString("lt64", LT64.ToString());
+                xml.WriteElementString("lt64", Lt64.ToString());
 
                 xml.WriteEndElement();
                 xml.WriteEndDocument();
@@ -201,12 +196,12 @@ namespace KeeChallenge
             }
             catch (Exception)
             {
-                MessageService.ShowWarning(String.Format("Error: unable to write to file {0}", mInfo.Path));
+                MessageService.ShowWarning($"Error: unable to write to file {_info.Path}");
                 return false;
             }
             finally
             {
-                s.Close();
+                s?.Close();
             }
 
             return true;
@@ -216,20 +211,22 @@ namespace KeeChallenge
                                           out byte[] secret)
         {
             //use the response to decrypt the secret
-            SHA256 sha = SHA256Managed.Create();
-            byte[] key = sha.ComputeHash(yubiResp); // get a 256 bit key from the 160 bit hmac response
+            var sha = SHA256.Create();
+            var key = sha.ComputeHash(yubiResp); // get a 256 bit key from the 160 bit hmac response
 
-            AesManaged aes = new AesManaged();
-            aes.KeySize = key.Length * sizeof(byte) * 8; //pedantic, but foolproof
-            aes.Key = key;
-            aes.IV = iv;
-            aes.Padding = PaddingMode.PKCS7;
-
-            secret = new byte[keyLenBytes];
-            ICryptoTransform dec = aes.CreateDecryptor();
-            using (MemoryStream msDecrypt = new MemoryStream(encryptedSecret))
+            var aes = new AesManaged
             {
-                using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, dec, CryptoStreamMode.Read))
+                KeySize = key.Length * sizeof(byte) * 8, //pedantic, but foolproof
+                Key = key,
+                IV = iv,
+                Padding = PaddingMode.PKCS7
+            };
+
+            secret = new byte[KeyLenBytes];
+            var dec = aes.CreateDecryptor();
+            using (var msDecrypt = new MemoryStream(encryptedSecret))
+            {
+                using (var csDecrypt = new CryptoStream(msDecrypt, dec, CryptoStreamMode.Read))
                 {
                     csDecrypt.Read(secret, 0, secret.Length);
                     csDecrypt.Close();
@@ -238,8 +235,8 @@ namespace KeeChallenge
                 msDecrypt.Close();
             }
 
-            byte[] secretHash = sha.ComputeHash(secret);
-            for (int i = 0; i < secretHash.Length; i++)
+            var secretHash = sha.ComputeHash(secret);
+            for (var i = 0; i < secretHash.Length; i++)
             {
                 if (secretHash[i] != verification[i])
                 {
@@ -263,18 +260,20 @@ namespace KeeChallenge
             challenge = null;
             verification = null;
 
-            LT64 = false; //default to false if not found
+            Lt64 = false; //default to false if not found
 
             XmlReader xml = null;
             Stream s = null;
             try
             {
-                s = IOConnection.OpenRead(mInfo);
+                s = IOConnection.OpenRead(_info);
 
                 //read file
 
-                XmlReaderSettings settings = new XmlReaderSettings();
-                settings.CloseInput = true;
+                var settings = new XmlReaderSettings
+                {
+                    CloseInput = true
+                };
                 xml = XmlReader.Create(s, settings);
 
                 while (xml.Read())
@@ -301,8 +300,10 @@ namespace KeeChallenge
                                 break;
                             case "lt64":
                                 xml.Read();
-                                if (!bool.TryParse(xml.Value.Trim(), out m_LT64))
+                                if (!bool.TryParse(xml.Value.Trim(), out _lt64))
+                                {
                                     throw new Exception("Unable to parse LT64 flag");
+                                }
                                 break;
                         }
                     }
@@ -311,17 +312,13 @@ namespace KeeChallenge
             catch (Exception)
             {
                 MessageService.ShowWarning(
-                    String.Format(
-                        "Error: file {0} could not be read correctly. Is the file corrupt? Reverting to recovery mode",
-                        mInfo.Path));
+                    $"Error: file {_info.Path} could not be read correctly. Is the file corrupt? Reverting to recovery mode");
                 return false;
             }
             finally
             {
-                if (xml != null)
-                    xml.Close();
-                if (s != null)
-                    s.Close();
+                xml?.Close();
+                s?.Close();
             }
 
             //if failed, return false
@@ -332,14 +329,17 @@ namespace KeeChallenge
         {
             //show the entry dialog for the secret
             //get the secret
-            KeyCreation creator = new KeyCreation(this);
+            var creator = new KeyCreation(this);
 
-            if (creator.ShowDialog() != System.Windows.Forms.DialogResult.OK) return null;
+            if (creator.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+            {
+                return null;
+            }
 
-            byte[] secret = new byte[creator.Secret.Length];
+            var secret = new byte[creator.Secret.Length];
 
             Array.Copy(creator.Secret, secret, creator.Secret.Length);
-                //probably paranoid here, but not a big performance hit
+            //probably paranoid here, but not a big performance hit
             Array.Clear(creator.Secret, 0, creator.Secret.Length);
 
             if (!EncryptAndSave(secret))
@@ -355,11 +355,11 @@ namespace KeeChallenge
         private byte[] Get(KeyProviderQueryContext ctx)
         {
             //read the challenge, iv, and encrypted secret from disk -- if missing, you must use recovery mode
-            byte[] encryptedSecret = null;
-            byte[] iv = null;
-            byte[] challenge = null;
-            byte[] verification = null;
-            byte[] secret = null;
+            byte[] encryptedSecret;
+            byte[] iv;
+            byte[] challenge;
+            byte[] verification;
+            byte[] secret;
 
             if (!ReadEncryptedSecret(out encryptedSecret, out challenge, out iv, out verification))
             {
@@ -368,8 +368,8 @@ namespace KeeChallenge
                 return secret;
             }
             //show the dialog box prompting user to press yubikey button
-            byte[] resp = new byte[YubiWrapper.yubiRespLen];
-            KeyEntry entryForm = new KeyEntry(this, challenge);
+            var resp = new byte[YubiWrapper.YubiRespLen];
+            var entryForm = new KeyEntry(this, challenge);
 
             if (entryForm.ShowDialog() != System.Windows.Forms.DialogResult.OK)
             {
@@ -380,7 +380,7 @@ namespace KeeChallenge
                     return secret;
                 }
 
-                else return null;
+                return null;
             }
 
             entryForm.Response.CopyTo(resp, 0);
@@ -388,22 +388,20 @@ namespace KeeChallenge
 
             if (DecryptSecret(encryptedSecret, resp, iv, verification, out secret))
             {
-                if (EncryptAndSave(secret))
-                    return secret;
-                else return null;
+                return EncryptAndSave(secret) ? secret : null;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         private static byte[] RecoveryMode()
         {
             //prompt user to enter secret
-            RecoveryMode recovery = new RecoveryMode();
-            if (recovery.ShowDialog() != System.Windows.Forms.DialogResult.OK) return null;
-            byte[] secret = new byte[recovery.Secret.Length];
+            var recovery = new RecoveryMode();
+            if (recovery.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+            {
+                return null;
+            }
+            var secret = new byte[recovery.Secret.Length];
 
             recovery.Secret.CopyTo(secret, 0);
             Array.Clear(recovery.Secret, 0, recovery.Secret.Length);

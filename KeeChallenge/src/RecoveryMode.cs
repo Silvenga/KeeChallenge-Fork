@@ -17,12 +17,7 @@
 */
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 using KeePass.UI;
@@ -44,14 +39,14 @@ namespace KeeChallenge
         {
             if (DialogResult == DialogResult.OK)
             {
-                Secret = new byte[KeeChallengeProv.secretLenBytes];
+                Secret = new byte[KeeChallengeKeyProvider.SecretLenBytes];
                 secretTextBox.Text = secretTextBox.Text.Replace(" ", string.Empty); //remove spaces
 
-                if (secretTextBox.Text.Length == KeeChallengeProv.secretLenBytes * 2)
+                if (secretTextBox.Text.Length == KeeChallengeKeyProvider.SecretLenBytes * 2)
                 {
-                    for (int i = 0; i < secretTextBox.Text.Length; i += 2)
+                    for (var i = 0; i < secretTextBox.Text.Length; i += 2)
                     {
-                        string b = secretTextBox.Text.Substring(i, 2);
+                        var b = secretTextBox.Text.Substring(i, 2);
                         Secret[i / 2] = Convert.ToByte(b, 16);
                     }
                 }
