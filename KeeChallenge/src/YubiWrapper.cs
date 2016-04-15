@@ -30,8 +30,8 @@ namespace KeeChallenge
 {
     public class YubiWrapper
     {
-        public const uint YubiRespLen = 20;
-        private const uint YubiBuffLen = 64;
+        public const uint YubiResponseLength = 20;
+        private const uint YubiBufferLength = 64;
 
         private readonly List<string> _nativeDlLs = new List<string>
         {
@@ -184,14 +184,15 @@ namespace KeeChallenge
 
         public bool ChallengeResponse(YubiSlot slot, byte[] challenge, out byte[] response)
         {
-            response = new byte[YubiRespLen];
+            response = new byte[YubiResponseLength];
             if (_yk == IntPtr.Zero)
             {
                 return false;
             }
 
-            var temp = new byte[YubiBuffLen];
-            var ret = yk_challenge_response(_yk, Slots[(int) slot], 1, (uint) challenge.Length, challenge, YubiBuffLen,
+            var temp = new byte[YubiBufferLength];
+            var ret = yk_challenge_response(_yk, Slots[(int) slot], 1, (uint) challenge.Length, challenge,
+                YubiBufferLength,
                 temp);
             if (ret == 1)
             {

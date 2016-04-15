@@ -30,32 +30,47 @@
         {
             this.promptLabel = new System.Windows.Forms.Label();
             this.progressBar = new System.Windows.Forms.ProgressBar();
+            this.AbortButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // promptLabel
             // 
             this.promptLabel.AutoSize = true;
-            this.promptLabel.Location = new System.Drawing.Point(38, 9);
+            this.promptLabel.Location = new System.Drawing.Point(115, 9);
+            this.promptLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.promptLabel.Name = "promptLabel";
-            this.promptLabel.Size = new System.Drawing.Size(197, 13);
+            this.promptLabel.Size = new System.Drawing.Size(293, 20);
             this.promptLabel.TabIndex = 0;
             this.promptLabel.Text = "Please press the button on your Yubikey";
             // 
             // progressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(12, 25);
+            this.progressBar.Location = new System.Drawing.Point(18, 38);
+            this.progressBar.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(260, 23);
+            this.progressBar.Size = new System.Drawing.Size(390, 35);
             this.progressBar.TabIndex = 1;
+            // 
+            // AbortButton
+            // 
+            this.AbortButton.Location = new System.Drawing.Point(415, 38);
+            this.AbortButton.Name = "AbortButton";
+            this.AbortButton.Size = new System.Drawing.Size(106, 35);
+            this.AbortButton.TabIndex = 2;
+            this.AbortButton.Text = "Abort";
+            this.AbortButton.UseVisualStyleBackColor = true;
+            this.AbortButton.Click += new System.EventHandler(this.AbortButton_Click);
             // 
             // KeyEntry
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(284, 58);
+            this.ClientSize = new System.Drawing.Size(534, 89);
             this.ControlBox = false;
+            this.Controls.Add(this.AbortButton);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.promptLabel);
+            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "KeyEntry";
@@ -71,5 +86,6 @@
 
         private System.Windows.Forms.Label promptLabel;
         private System.Windows.Forms.ProgressBar progressBar;
+        private System.Windows.Forms.Button AbortButton;
     }
 }

@@ -53,7 +53,7 @@ namespace KeeChallenge
             InitializeComponent();
             _parent = parent;
             _success = false;
-            Response = new byte[YubiWrapper.YubiRespLen];
+            Response = new byte[YubiWrapper.YubiResponseLength];
             Challenge = null;
             _yubiSlot = parent.YubikeySlot;
             RecoveryMode = false;
@@ -65,7 +65,7 @@ namespace KeeChallenge
             InitializeComponent();
             _parent = parent;
             _success = false;
-            Response = new byte[YubiWrapper.YubiRespLen];
+            Response = new byte[YubiWrapper.YubiResponseLength];
             Challenge = challenge;
             _yubiSlot = parent.YubikeySlot;
 
@@ -166,6 +166,11 @@ namespace KeeChallenge
             }
             _yubi?.Close();
             GlobalWindowManager.RemoveWindow(this);
+        }
+
+        private void AbortButton_Click(object sender, EventArgs e)
+        {
+            Close();
         }
     }
 }

@@ -368,7 +368,7 @@ namespace KeeChallenge
                 return secret;
             }
             //show the dialog box prompting user to press yubikey button
-            var resp = new byte[YubiWrapper.YubiRespLen];
+            var resp = new byte[YubiWrapper.YubiResponseLength];
             var entryForm = new KeyEntry(this, challenge);
 
             if (entryForm.ShowDialog() != System.Windows.Forms.DialogResult.OK)
