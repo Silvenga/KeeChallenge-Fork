@@ -95,7 +95,7 @@
       <DependentUpon>KeyCreation.cs</DependentUpon>
     </Compile>
     <Compile Include="KeeChallenge.cs" />
-    <Compile Include="KeeChallengePlugin.cs" />
+    <Compile Include="KeeChallengeExt.cs" />
     <Compile Include="KeyEntry.cs">
       <SubType>Form</SubType>
     </Compile>

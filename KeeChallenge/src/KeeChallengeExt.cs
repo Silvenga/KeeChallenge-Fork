@@ -23,7 +23,7 @@ using KeePass.Plugins;
 
 namespace KeeChallenge
 {
-    public sealed class KeeChallengePlugin : Plugin
+    public sealed class KeeChallengeExt : Plugin
     {
         private IPluginHost _host;
         private KeeChallengeKeyProvider _keyProvider;
@@ -35,8 +35,6 @@ namespace KeeChallenge
 
         public override string UpdateUrl
             => "https://sourceforge.net/p/keechallenge/code/ci/master/tree/VERSION?format=raw";
-
-        public IPluginHost Host => _host;
 
         public override bool Initialize(IPluginHost host)
         {
@@ -60,6 +58,13 @@ namespace KeeChallenge
                 yubiSlot = (YubiSlot) slot;
             }
 
+            CreateMenu(yubiSlot);
+
+            return true;
+        }
+
+        private void CreateMenu(YubiSlot yubiSlot)
+        {
             var tsMenu = _host.MainWindow.ToolsMenu.DropDownItems;
             _separator = new ToolStripSeparator();
             tsMenu.Add(_separator);
@@ -102,9 +107,8 @@ namespace KeeChallenge
             {
                 YubikeySlot = yubiSlot
             };
-            _host.KeyProviderPool.Add(_keyProvider);
 
-            return true;
+            _host.KeyProviderPool.Add(_keyProvider);
         }
 
         public override void Terminate()
