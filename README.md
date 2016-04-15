@@ -1,6 +1,6 @@
 # KeeChallenge-Fork
 
-[![AppVeyor](https://img.shields.io/appveyor/ci/Silvenga/keechallenge-fork.svg)]()
+[![AppVeyor](https://img.shields.io/appveyor/ci/Silvenga/keechallenge-fork.svg)](https://ci.appveyor.com/project/Silvenga/keechallenge-fork)
 
 A fork of KeeChallenge - adding in my own personal features.
 
