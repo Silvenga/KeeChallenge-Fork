@@ -4,7 +4,7 @@
 
 A fork of KeeChallenge - adding in my own personal features.
 
-Changes after fork"
+Changes after fork:
 
 - [X] Abort button 
 
